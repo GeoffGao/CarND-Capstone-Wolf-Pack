@@ -40,30 +40,47 @@
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
 #include "styx_msgs/Lane.h"
+#include "autogo_msgs/Trajectory.h"
+#include "autogo_msgs/TrajectoryPoint.h"
+
 
 class WayPoints
 {
 protected:
   styx_msgs::Lane current_waypoints_;
+  autogo_msgs::Trajectory current_traj_;
 
 public:
   void setPath(const styx_msgs::Lane &waypoints)
   {
     current_waypoints_ = waypoints;
   }
+  void setPathR(const autogo_msgs::Trajectory &waypoints)
+  {
+	current_traj_ = waypoints;
+  }
   int getSize() const;
   bool isEmpty() const
   {
     return current_waypoints_.waypoints.empty();
   };
+  bool isEmptyR() const
+  {
+     return current_traj_.trajectory_points.empty();
+  };
   double getInterval() const;
   geometry_msgs::Point getWaypointPosition(int waypoint) const;
   geometry_msgs::Quaternion getWaypointOrientation(int waypoint) const;
+  geometry_msgs::Quaternion getQuaternionFromTF(tf::Quaternion qt) const;
   geometry_msgs::Pose getWaypointPose(int waypoint) const;
   double getWaypointVelocityMPS(int waypoint) const;
   styx_msgs::Lane getCurrentWaypoints() const
   {
     return current_waypoints_;
+  }
+  autogo_msgs::Trajectory getCurrentWaypointsR() const
+  {
+    return current_traj_;
   }
   bool isFront(int waypoint, geometry_msgs::Pose current_pose) const;
 };
@@ -96,6 +113,7 @@ geometry_msgs::Point calcAbsoluteCoordinate(geometry_msgs::Point point,
                                                                                 // coordinate
 double getPlaneDistance(geometry_msgs::Point target1,
                         geometry_msgs::Point target2);  // get 2 dimentional distance between target 1 and target 2
+int getClosestWaypoint(const autogo_msgs::Trajectory &current_path, geometry_msgs::Pose current_pose);
 int getClosestWaypoint(const styx_msgs::Lane &current_path, geometry_msgs::Pose current_pose);
 bool getLinearEquation(geometry_msgs::Point start, geometry_msgs::Point end, double *a, double *b, double *c);
 double getDistanceBetweenLineAndPoint(geometry_msgs::Point point, double sa, double b, double c);

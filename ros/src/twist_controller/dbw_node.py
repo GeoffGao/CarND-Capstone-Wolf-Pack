@@ -109,6 +109,10 @@ class DBWNode(object):
             angular_acceleration = 0.0
             deltat = 0.02
 
+            MODE = "PID"
+            MODE = "MPC"
+
+
             goal_linear_acceleration, goal_angular_velocity = self.twist_controller.control(self.goal_acceleration,
                                                                                             self.goal_yaw_rate,
                                                                                             self.current_linear,
@@ -122,10 +126,11 @@ class DBWNode(object):
             #    goal_linear_acceleration = 0
 
             throttle, brake, steering = self.gain_controller.control(goal_linear_acceleration, goal_angular_velocity,
-                                                                     linear_speed, angular_velocity,
-                                                                     linear_acceleration, angular_acceleration,
-                                                                     deltat, self.dbw_enabled)
+                                                                                 linear_speed, angular_velocity,
+                                                                                 linear_acceleration, angular_acceleration,
+                                                                                 deltat, self.dbw_enabled)
 
+            rospy.logwarn("throttle=%f,steering=%f",throttle, steering)
             if brake > 0:
                 brake = brake * BrakeCmd.TORQUE_MAX / -self.decel_limit
 

@@ -1,0 +1,6 @@
+<launch>
+  <param name="/use_sim_time" value="false"/>
+  <node pkg="trajectory_follower" type="mpc_node" name="mpc_node" output="screen" respawn="true">
+	<rosparam  file="$(find trajectory_follower)/cfg/TrajectoryFollowerConfig.yaml" command="load"/>
+  </node>
+</launch>

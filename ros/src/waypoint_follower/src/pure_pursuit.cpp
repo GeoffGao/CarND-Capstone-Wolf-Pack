@@ -27,10 +27,18 @@
  *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-
+/*************************************
+ * Program modified by Junlong Gao
+ ************************************/
 #include "pure_pursuit_core.h"
 
-constexpr int LOOP_RATE = 5; //processing frequency
+//#define REAL
+
+#ifdef REAL
+constexpr int LOOP_RATE = 10; //processing frequency
+#else
+constexpr int LOOP_RATE = 10; //processing frequency
+#endif
 
 
 int main(int argc, char **argv)
@@ -47,27 +55,58 @@ int main(int argc, char **argv)
   private_nh.param("linear_interpolate_mode", linear_interpolate_mode, bool(true));
   ROS_INFO_STREAM("linear_interpolate_mode : " << linear_interpolate_mode);
 
-  waypoint_follower::PurePursuit pp(linear_interpolate_mode);
+  tf::TransformListener tf_;
+  waypoint_follower::PurePursuit pp(linear_interpolate_mode,tf_);
 
   ROS_INFO("set publisher...");
   // publish topic
+#ifdef REAL
+  ros::Publisher cmd_velocity_publisher = nh.advertise<geometry_msgs::TwistStamped>("/vehicle/cmd_vel_stamped", 10);
+#else
   ros::Publisher cmd_velocity_publisher = nh.advertise<geometry_msgs::TwistStamped>("twist_cmd", 10);
+#endif
+  ros::Publisher debug_info_publisher = nh.advertise<geometry_msgs::TwistStamped>("debug_info_PP",10);
 
   ROS_INFO("set subscriber...");
   // subscribe topic
+  #ifdef REAL
   ros::Subscriber waypoint_subscriber =
-      nh.subscribe("final_waypoints", 10, &waypoint_follower::PurePursuit::callbackFromWayPoints, &pp);
-  ros::Subscriber ndt_subscriber =
-      nh.subscribe("current_pose", 10, &waypoint_follower::PurePursuit::callbackFromCurrentPose, &pp);
-  ros::Subscriber est_twist_subscriber =
-      nh.subscribe("current_velocity", 10, &waypoint_follower::PurePursuit::callbackFromCurrentVelocity, &pp);
+          nh.subscribe("/autogo/planning/trajectory", 10, &waypoint_follower::PurePursuit::callbackFromWayPoints, &pp);
+    ros::Subscriber ndt_subscriber =
+         nh.subscribe("/autogo/planning/trajectory", 10, &waypoint_follower::PurePursuit::callbackFromCurrentPoseR, &pp);//fake subscribe
+ 	ros::Subscriber est_twist_subscriber =
+ 	     nh.subscribe("/vehicle/twist", 10, &waypoint_follower::PurePursuit::callbackFromCurrentVelocityR, &pp);
+    ros::Subscriber kb_subscriber =
+    	 nh.subscribe("/vehicle/trigger_KB",1,&waypoint_follower::PurePursuit::callbackFromKeyBoard, &pp);
+#else
+    ros::Subscriber waypoint_subscriber =
+          nh.subscribe("final_waypoints", 10, &waypoint_follower::PurePursuit::callbackFromWayPoints1, &pp);
+    ros::Subscriber ndt_subscriber =
+        nh.subscribe("current_pose", 10, &waypoint_follower::PurePursuit::callbackFromCurrentPose, &pp);
+	ros::Subscriber est_twist_subscriber =
+	    nh.subscribe("current_velocity", 10, &waypoint_follower::PurePursuit::callbackFromCurrentVelocity, &pp);
+#endif
 
   ROS_INFO("pure pursuit start");
   ros::Rate loop_rate(LOOP_RATE);
+  geometry_msgs::TwistStamped debug_pub;
+  geometry_msgs::TwistStamped final_pub;
   while (ros::ok())
   {
+    ROS_INFO("PP cp1");
     ros::spinOnce();
-    cmd_velocity_publisher.publish(pp.go());
+#ifdef REAL
+    bool automode = pp.getAutonomousRight();
+    if(automode){
+    	final_pub = pp.go(debug_pub);
+    	debug_info_publisher.publish(debug_pub);
+    	cmd_velocity_publisher.publish(final_pub);
+    }
+#else
+    final_pub = pp.go(debug_pub);
+	debug_info_publisher.publish(debug_pub);
+	cmd_velocity_publisher.publish(final_pub);
+#endif
     loop_rate.sleep();
   }
 

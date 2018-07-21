@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<launch>
+   <!-- Vehicle Interface -->
+    <arg name="frame_id" default="base_footprint"/>
+    <arg name="warn_cmds" default="true"/>
+    <arg name="buttons" default="true"/>
+    <arg name="boo_control"   default="true"/>
+    <arg name="boo_thresh_lo" default="0.20"/>
+    <arg name="boo_thresh_hi" default="0.22"/>
+    <arg name="ackermann_wheelbase" default="2.8498"/>
+    <arg name="ackermann_track"     default="1.5824"/>
+    <arg name="steering_ratio"      default="14.8"/>
+    <arg name="twist_use_pedals"   default="True"/>
+    <arg name="twist_use_steering" default="True"/>
+    <arg name="decel_max" default="3.0"/>
+    <arg name="accel_max" default="3.0"/>
+    <arg name="control_method" default = "1"/><!--0 is PID, 1 is MPC-->
+    <node pkg="dbw_mkz_twist_controller" type="twist_controller" name="twist_controller" output="screen">
+      <param name="ackermann_wheelbase" value="$(arg ackermann_wheelbase)" />
+      <param name="ackermann_track" value="$(arg ackermann_track)" />
+      <param name="steering_ratio" value="$(arg steering_ratio)" />
+      <param name="pub_pedals" value="$(arg twist_use_pedals)" />
+      <param name="pub_steering" value="$(arg twist_use_steering)" />
+      <param name="decel_max" value="$(arg decel_max)" />
+      <param name="accel_max" value="$(arg accel_max)" />
+      <param name="control_method" value = "$(arg control_method)"/>
+    </node>
+</launch>

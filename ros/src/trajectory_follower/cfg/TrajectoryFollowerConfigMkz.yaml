@@ -1,0 +1,38 @@
+mpc/topic_sub_imu:                 /imu/data_raw
+mpc/topic_sub_chassis:             /drivers/chitu_velocity_controller/odom
+mpc/topic_sub_steering:            /vehicle/steering_report
+mpc/topic_sub_velocity:            /vehicle/velocity_report
+mpc/topic_sub_enable  :            /dbw_enabled
+mpc/topic_sub_fuel_level  :        /vehicle/fuel_level_report
+mpc/topic_sub_localization_status: /vehicle/localization/status
+mpc/topic_sub_planning:            /planning/trajectory
+
+mpc/topic_pub_throttle:           /vehicle/throttle_cmd/
+mpc/topic_pub_brake:              /vehicle/brake_cmd/
+mpc/topic_pub_steering:           /vehicle/steering_cmd/
+
+mpc/topic_pub_mid_accel:           /mkz/filtered_accel     
+mpc/topic_pub_mid_rqt_accel:       /mkz/req_accel
+
+mpc/predicted_trajectory:          /mkz/control/sim/viz/predicted_trajectory
+mpc/fitted_trajectory:             /mkz/control/sim/viz/fitted_trajectory
+mpc/fitted_waypoints:              /mkz/control/sim/viz/fitted_waypoints
+
+mpc/wheel_base: 2.8498
+mpc/control_rate: 30
+mpc/max_odom_time_interval: 1.0
+mpc/max_trajectory_time_interval: 1.0
+mpc/is_sim_status: true
+
+mpc/color_1_a: 1.0
+mpc/color_1_r: 100.0
+mpc/color_1_g: 205.0
+mpc/color_1_b: 100.0
+mpc/color_2_a: 1.0
+mpc/color_2_r: 100.0
+mpc/color_2_g: 201.0
+mpc/color_2_b: 190.0
+mpc/color_3_a: 1.0
+mpc/color_3_r: 155.0
+mpc/color_3_g: 100.0
+mpc/color_3_b: 225.0

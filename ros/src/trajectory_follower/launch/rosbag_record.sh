@@ -1,0 +1,1 @@
+rosbag record mpc.bag /aft_dyn_to_init /costly_imu /planning_node/trajectory /tf /planning_node_debug/costmap/costmap /planning_node_debug/costmap/costmap_updates /planning_node_debug/costmap/footprint /scan_costmap /scan_rear_costmap /odometry/filtered2 /map /map_metadata /map_updates

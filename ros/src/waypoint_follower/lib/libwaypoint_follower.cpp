@@ -29,74 +29,14 @@
  */
 
 #include "libwaypoint_follower.h"
+//#define REAL
 
-int WayPoints::getSize() const
+
+geometry_msgs::Quaternion WayPoints::getQuaternionFromTF(tf::Quaternion qt) const
 {
-  if (current_waypoints_.waypoints.empty())
-    return 0;
-  else
-    return current_waypoints_.waypoints.size();
-}
-
-double WayPoints::getInterval() const
-{
-  if (current_waypoints_.waypoints.empty())
-    return 0;
-
-  // interval between 2 waypoints
-  tf::Vector3 v1(current_waypoints_.waypoints[0].pose.pose.position.x,
-                 current_waypoints_.waypoints[0].pose.pose.position.y, 0);
-
-  tf::Vector3 v2(current_waypoints_.waypoints[1].pose.pose.position.x,
-                 current_waypoints_.waypoints[1].pose.pose.position.y, 0);
-  return tf::tfDistance(v1, v2);
-}
-
-geometry_msgs::Point WayPoints::getWaypointPosition(int waypoint) const
-{
-  geometry_msgs::Point p;
-  if (waypoint > getSize() - 1 || waypoint < 0)
-    return p;
-
-  p = current_waypoints_.waypoints[waypoint].pose.pose.position;
-  return p;
-}
-
-geometry_msgs::Quaternion WayPoints::getWaypointOrientation(int waypoint) const
-{
-  geometry_msgs::Quaternion q;
-  if (waypoint > getSize() - 1 || waypoint < 0)
-    return q;
-
-  q = current_waypoints_.waypoints[waypoint].pose.pose.orientation;
-  return q;
-}
-
-geometry_msgs::Pose WayPoints::getWaypointPose(int waypoint) const
-{
-  geometry_msgs::Pose pose;
-  if (waypoint > getSize() - 1 || waypoint < 0)
-    return pose;
-
-  pose = current_waypoints_.waypoints[waypoint].pose.pose;
-  return pose;
-}
-
-double WayPoints::getWaypointVelocityMPS(int waypoint) const
-{
-  if (waypoint > getSize() - 1 || waypoint < 0)
-    return 0;
-
-  return current_waypoints_.waypoints[waypoint].twist.twist.linear.x;
-}
-
-bool WayPoints::isFront(int waypoint, geometry_msgs::Pose current_pose) const
-{
-  double x = calcRelativeCoordinate(current_waypoints_.waypoints[waypoint].pose.pose.position, current_pose).x;
-  if (x < 0)
-    return false;
-  else
-    return true;
+	geometry_msgs::Quaternion q;
+	q.x = qt.getX(); q.y = qt.getY(); q.z = qt.getZ(); q.w = qt.getW();
+	return q;
 }
 
 double DecelerateVelocity(double distance, double prev_velocity)
@@ -171,6 +111,285 @@ double getRelativeAngle(geometry_msgs::Pose waypoint_pose, geometry_msgs::Pose v
   return angle;
 }
 
+// let the linear equation be "ax + by + c = 0"
+// if there are two points (x1,y1) , (x2,y2), a = "y2-y1, b = "(-1) * x2 - x1" ,c = "(-1) * (y2-y1)x1 + (x2-x1)y1"
+bool getLinearEquation(geometry_msgs::Point start, geometry_msgs::Point end, double *a, double *b, double *c)
+{
+  //(x1, y1) = (start.x, star.y), (x2, y2) = (end.x, end.y)
+  double sub_x = fabs(start.x - end.x);
+  double sub_y = fabs(start.y - end.y);
+  double error = pow(10, -5);  // 0.00001
+
+  if (sub_x < error && sub_y < error)
+  {
+    ROS_INFO("two points are the same point!!");
+    return false;
+  }
+
+  *a = end.y - start.y;
+  *b = (-1) * (end.x - start.x);
+  *c = (-1) * (end.y - start.y) * start.x + (end.x - start.x) * start.y;
+
+  return true;
+}
+
+double getDistanceBetweenLineAndPoint(geometry_msgs::Point point, double a, double b, double c)
+{
+  double d = fabs(a * point.x + b * point.y + c) / sqrt(pow(a, 2) + pow(b, 2));
+
+  return d;
+}
+
+tf::Vector3 point2vector(geometry_msgs::Point point)
+{
+  tf::Vector3 vector(point.x, point.y, point.z);
+  return vector;
+}
+
+geometry_msgs::Point vector2point(tf::Vector3 vector)
+{
+  geometry_msgs::Point point;
+  point.x = vector.getX();
+  point.y = vector.getY();
+  point.z = vector.getZ();
+  return point;
+}
+
+tf::Vector3 rotateUnitVector(tf::Vector3 unit_vector, double degree)
+{
+  tf::Vector3 w1(cos(deg2rad(degree)) * unit_vector.getX() - sin(deg2rad(degree)) * unit_vector.getY(),
+                 sin(deg2rad(degree)) * unit_vector.getX() + cos(deg2rad(degree)) * unit_vector.getY(), 0);
+  tf::Vector3 unit_w1 = w1.normalize();
+
+  return unit_w1;
+}
+
+geometry_msgs::Point rotatePoint(geometry_msgs::Point point, double degree)
+{
+  geometry_msgs::Point rotate;
+  rotate.x = cos(deg2rad(degree)) * point.x - sin(deg2rad(degree)) * point.y;
+  rotate.y = sin(deg2rad(degree)) * point.x + cos(deg2rad(degree)) * point.y;
+
+  return rotate;
+}
+
+/*========================Simulator and Real Difference=========================*/
+#ifdef REAL
+
+int WayPoints::getSize() const
+{
+  if (current_traj_.trajectory_points.empty())
+    return 0;
+  else
+    return current_traj_.trajectory_points.size();
+}
+
+double WayPoints::getInterval() const
+{
+  if (current_traj_.trajectory_points.empty())
+    return 0;
+
+  // interval between 2 waypoints
+  tf::Vector3 v1(current_traj_.trajectory_points[0].path_point.point.x,
+		         current_traj_.trajectory_points[0].path_point.point.y, 0);
+
+  tf::Vector3 v2(current_traj_.trajectory_points[1].path_point.point.x,
+		         current_traj_.trajectory_points[1].path_point.point.y, 0);
+  return tf::tfDistance(v1, v2);
+}
+
+geometry_msgs::Point WayPoints::getWaypointPosition(int waypoint) const
+{
+  geometry_msgs::Point p;
+  if (waypoint > getSize() - 1 || waypoint < 0)
+    return p;
+
+  p = current_traj_.trajectory_points[waypoint].path_point.point;
+  return p;
+}
+
+geometry_msgs::Quaternion WayPoints::getWaypointOrientation(int waypoint) const
+{
+  geometry_msgs::Quaternion q;
+  tf::Quaternion qt;
+  if (waypoint > getSize() - 1 || waypoint < 0)
+    return q;
+  qt = tf::createQuaternionFromYaw(current_traj_.trajectory_points[waypoint].path_point.theta);
+  q = getQuaternionFromTF(qt);
+  return q;
+}
+
+geometry_msgs::Pose WayPoints::getWaypointPose(int waypoint) const
+{
+  geometry_msgs::Pose pose;
+  tf::Quaternion qt;
+  if (waypoint > getSize() - 1 || waypoint < 0)
+    return pose;
+
+  pose.position = current_traj_.trajectory_points[waypoint].path_point.point;
+  qt = tf::createQuaternionFromYaw(current_traj_.trajectory_points[waypoint].path_point.theta);
+  pose.orientation = getQuaternionFromTF(qt);
+  return pose;
+}
+
+double WayPoints::getWaypointVelocityMPS(int waypoint) const
+{
+  if (waypoint > getSize() - 1 || waypoint < 0)
+    return 0;
+
+  return current_traj_.trajectory_points[waypoint].v;
+}
+
+bool WayPoints::isFront(int waypoint, geometry_msgs::Pose current_pose) const
+{
+  double x = calcRelativeCoordinate(current_traj_.trajectory_points[waypoint].path_point.point, current_pose).x;
+  if (x < 0)
+    return false;
+  else
+    return true;
+}
+
+// get closest waypoint from current pose
+int getClosestWaypoint(const autogo_msgs::Trajectory &current_path, geometry_msgs::Pose current_pose)
+{
+  WayPoints wp;
+  wp.setPathR(current_path);
+
+  if (wp.isEmpty())
+    return -1;
+
+  // search closest candidate within a certain meter
+  double search_distance = 5.0;
+  std::vector<int> waypoint_candidates;
+  for (int i = 1; i < wp.getSize(); i++)
+  {
+    if (getPlaneDistance(wp.getWaypointPosition(i), current_pose.position) > search_distance)
+      continue;
+
+    if (!wp.isFront(i, current_pose))
+      continue;
+
+    double angle_threshold = 90;
+    if (getRelativeAngle(wp.getWaypointPose(i), current_pose) > angle_threshold)
+      continue;
+
+    waypoint_candidates.push_back(i);
+  }
+
+  // get closest waypoint from candidates
+  if (!waypoint_candidates.empty())
+  {
+    int waypoint_min = -1;
+    double distance_min = DBL_MAX;
+    for (auto el : waypoint_candidates)
+    {
+      // ROS_INFO("closest_candidates : %d",el);
+      double d = getPlaneDistance(wp.getWaypointPosition(el), current_pose.position);
+      if (d < distance_min)
+      {
+        waypoint_min = el;
+        distance_min = d;
+      }
+    }
+    return waypoint_min;
+  }
+  else
+  {
+    ROS_INFO("no candidate. search closest waypoint from all waypoints...");
+    // if there is no candidate...
+    int waypoint_min = -1;
+    double distance_min = DBL_MAX;
+    for (int i = 1; i < wp.getSize(); i++)
+    {
+      if (!wp.isFront(i, current_pose))
+        continue;
+
+      // if (!wp.isValid(i, current_pose))
+      //  continue;
+
+      double d = getPlaneDistance(wp.getWaypointPosition(i), current_pose.position);
+      if (d < distance_min)
+      {
+        waypoint_min = i;
+        distance_min = d;
+      }
+    }
+    return waypoint_min;
+  }
+}
+
+#else
+
+int WayPoints::getSize() const
+{
+  if (current_waypoints_.waypoints.empty())
+    return 0;
+  else
+    return current_waypoints_.waypoints.size();
+}
+
+double WayPoints::getInterval() const
+{
+  if (current_waypoints_.waypoints.empty())
+    return 0;
+
+  // interval between 2 waypoints
+  tf::Vector3 v1(current_waypoints_.waypoints[0].pose.pose.position.x,
+                 current_waypoints_.waypoints[0].pose.pose.position.y, 0);
+
+  tf::Vector3 v2(current_waypoints_.waypoints[1].pose.pose.position.x,
+                 current_waypoints_.waypoints[1].pose.pose.position.y, 0);
+  return tf::tfDistance(v1, v2);
+}
+
+geometry_msgs::Point WayPoints::getWaypointPosition(int waypoint) const
+{
+  geometry_msgs::Point p;
+  if (waypoint > getSize() - 1 || waypoint < 0)
+    return p;
+
+  p = current_waypoints_.waypoints[waypoint].pose.pose.position;
+  return p;
+}
+
+geometry_msgs::Quaternion WayPoints::getWaypointOrientation(int waypoint) const
+{
+  geometry_msgs::Quaternion q;
+  if (waypoint > getSize() - 1 || waypoint < 0)
+    return q;
+
+  q = current_waypoints_.waypoints[waypoint].pose.pose.orientation;
+  return q;
+}
+
+geometry_msgs::Pose WayPoints::getWaypointPose(int waypoint) const
+{
+  geometry_msgs::Pose pose;
+  if (waypoint > getSize() - 1 || waypoint < 0)
+    return pose;
+
+  pose = current_waypoints_.waypoints[waypoint].pose.pose;
+  return pose;
+}
+
+double WayPoints::getWaypointVelocityMPS(int waypoint) const
+{
+  if (waypoint > getSize() - 1 || waypoint < 0)
+    return 0;
+
+  return current_waypoints_.waypoints[waypoint].twist.twist.linear.x;
+}
+
+bool WayPoints::isFront(int waypoint, geometry_msgs::Pose current_pose) const
+{
+  double x = calcRelativeCoordinate(current_waypoints_.waypoints[waypoint].pose.pose.position, current_pose).x;
+  if (x < 0)
+    return false;
+  else
+    return true;
+}
+
+
 // get closest waypoint from current pose
 int getClosestWaypoint(const styx_msgs::Lane &current_path, geometry_msgs::Pose current_pose)
 {
@@ -240,63 +459,4 @@ int getClosestWaypoint(const styx_msgs::Lane &current_path, geometry_msgs::Pose 
   }
 }
 
-// let the linear equation be "ax + by + c = 0"
-// if there are two points (x1,y1) , (x2,y2), a = "y2-y1, b = "(-1) * x2 - x1" ,c = "(-1) * (y2-y1)x1 + (x2-x1)y1"
-bool getLinearEquation(geometry_msgs::Point start, geometry_msgs::Point end, double *a, double *b, double *c)
-{
-  //(x1, y1) = (start.x, star.y), (x2, y2) = (end.x, end.y)
-  double sub_x = fabs(start.x - end.x);
-  double sub_y = fabs(start.y - end.y);
-  double error = pow(10, -5);  // 0.00001
-
-  if (sub_x < error && sub_y < error)
-  {
-    ROS_INFO("two points are the same point!!");
-    return false;
-  }
-
-  *a = end.y - start.y;
-  *b = (-1) * (end.x - start.x);
-  *c = (-1) * (end.y - start.y) * start.x + (end.x - start.x) * start.y;
-
-  return true;
-}
-double getDistanceBetweenLineAndPoint(geometry_msgs::Point point, double a, double b, double c)
-{
-  double d = fabs(a * point.x + b * point.y + c) / sqrt(pow(a, 2) + pow(b, 2));
-
-  return d;
-}
-
-tf::Vector3 point2vector(geometry_msgs::Point point)
-{
-  tf::Vector3 vector(point.x, point.y, point.z);
-  return vector;
-}
-
-geometry_msgs::Point vector2point(tf::Vector3 vector)
-{
-  geometry_msgs::Point point;
-  point.x = vector.getX();
-  point.y = vector.getY();
-  point.z = vector.getZ();
-  return point;
-}
-
-tf::Vector3 rotateUnitVector(tf::Vector3 unit_vector, double degree)
-{
-  tf::Vector3 w1(cos(deg2rad(degree)) * unit_vector.getX() - sin(deg2rad(degree)) * unit_vector.getY(),
-                 sin(deg2rad(degree)) * unit_vector.getX() + cos(deg2rad(degree)) * unit_vector.getY(), 0);
-  tf::Vector3 unit_w1 = w1.normalize();
-
-  return unit_w1;
-}
-
-geometry_msgs::Point rotatePoint(geometry_msgs::Point point, double degree)
-{
-  geometry_msgs::Point rotate;
-  rotate.x = cos(deg2rad(degree)) * point.x - sin(deg2rad(degree)) * point.y;
-  rotate.y = sin(deg2rad(degree)) * point.x + cos(deg2rad(degree)) * point.y;
-
-  return rotate;
-}
+#endif

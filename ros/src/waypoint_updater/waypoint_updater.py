@@ -34,7 +34,7 @@ class WaypointUpdater(object):
     def __init__(self):
         # Initialize the node with the Master Process
         rospy.init_node('waypoint_updater')
-
+        
         # Subscribers
         self.base_waypoints_sub = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
@@ -56,6 +56,8 @@ class WaypointUpdater(object):
         self.tl_idx = None
         self.tl_state = None
         self.do_work()
+        # spin() simply keeps python from exiting until this node is stopped
+        rospy.spin()
 
     def do_work(self):
         rate = rospy.Rate(5)
@@ -69,13 +71,16 @@ class WaypointUpdater(object):
             self.cruise_speed = self.kmph_to_mps(float(env_velocity))
 
         while not rospy.is_shutdown():
-                if (self.car_position != None and self.waypoints != None and self.tl_state != None and self.car_curr_vel != None):
+                if (self.car_position != None and self.waypoints != None and len(self.waypoints) > 0 and self.car_curr_vel != None):
                        self.safe_distance = (self.car_curr_vel ** 2)/(2 * self.decel_limit * SAFE_DECEL_FACTOR)
+                       #rospy.logwarn("distance=%f",self.safe_distance)
                        self.closestWaypoint = self.NextWaypoint(self.car_position, self.car_yaw, self.waypoints)
-                       if self.tl_idx != None:
-                          self.distance_to_tl = self.distance(self.waypoints, self.closestWaypoint, self.tl_idx)
-                       self.car_action = self.desired_action(self.tl_idx, self.tl_state, self.closestWaypoint, self.waypoints)
-                       self.generate_final_waypoints(self.closestWaypoint, self.waypoints, self.car_action, self.tl_idx)
+                       #if self.tl_idx != None:
+                       #   self.distance_to_tl = self.distance(self.waypoints, self.closestWaypoint, self.tl_idx)
+                       self.car_action = "GO"
+                       #self.car_action = self.desired_action(self.tl_idx, self.tl_state, self.closestWaypoint, self.waypoints)
+                       #self.generate_final_waypoints(self.closestWaypoint, self.waypoints, self.car_action, self.tl_idx)
+                       self.generate_final_waypoints(self.closestWaypoint, self.waypoints, self.car_action)
                        self.publish()
                 else:
                        rand = random.uniform(0,1)
@@ -84,6 +89,7 @@ class WaypointUpdater(object):
                        if self.waypoints == None and rand < 0.01:
                                rospy.logwarn("[WP_UPDATER] /base_waypoints not received")
                        if self.tl_idx == None and rand < 0.01:
+                               rospy.logwarn("base point size=%d",len(self.waypoints))
                                rospy.logwarn("[WP_UPDATER] /traffic_waypoint not received")
                        if self.car_curr_vel == None  and rand < 0.01:
                                rospy.logwarn("[WP_UPDATER] /current_velocity not received")
@@ -211,6 +217,7 @@ class WaypointUpdater(object):
                 self.set_waypoint_velocity(waypoints, idx, velocity)
                 self.final_waypoints.append(waypoints[idx])
 
+    """
     def generate_final_waypoints(self, closestWaypoint, waypoints, action, tl_index):
         self.final_waypoints = []
         if (action == "STOP"):
@@ -219,6 +226,11 @@ class WaypointUpdater(object):
            self.slow_waypoints(closestWaypoint, tl_index, waypoints)
         elif (action == "GO"):
            self.go_waypoints(closestWaypoint, waypoints)
+    """
+
+    def generate_final_waypoints(self, closestWaypoint, waypoints, action):
+        self.final_waypoints = []
+        self.go_waypoints(closestWaypoint, waypoints)
 
     def publish(self):
         final_waypoints_msg = Lane()
@@ -243,12 +255,15 @@ class WaypointUpdater(object):
                 if (dist < closestLen):
                         closestLen = dist
                         closestWaypoint = idx
+        #rospy.logwarn("closestPT_idx=%d,dist = %f", closestWaypoint, closestLen)
         return closestWaypoint
 
     def NextWaypoint(self, position, yaw, waypoints):
         closestWaypoint = self.closest_waypoint(position, waypoints)
         map_x = waypoints[closestWaypoint].pose.pose.position.x
         map_y = waypoints[closestWaypoint].pose.pose.position.y
+        #map_x = waypoints[1].pose.pose.position.x
+        #map_y = waypoints[1].pose.pose.position.y
         heading = math.atan2((map_y - position.y), (map_x - position.x))
         angle = abs(yaw - heading)
         if (angle > math.pi/4):

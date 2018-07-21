@@ -35,8 +35,13 @@
 #include <ros/ros.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <nav_msgs/Path.h>
+#include <dbw_mkz_msgs/SteeringReport.h>
+#include "autogo_msgs/localization_status.h"
+#include <tf/tf.h>
 // C++ includes
 #include <memory>
+#include <std_msgs/Char.h>
 #include "libwaypoint_follower.h"
 
 enum class Mode
@@ -45,16 +50,18 @@ enum class Mode
   dialog
 };
 
+
 namespace waypoint_follower
 {
 class PurePursuit
 {
 private:
-
+  tf::TransformListener& tf_;
   //constant
   const double RADIUS_MAX_;
   const double KAPPA_MIN_;
-
+  const double wheel_base_;
+  const double speed_limit_;
   bool linear_interpolate_;
 
   // config topic
@@ -70,42 +77,63 @@ private:
   bool pose_set_;
   bool velocity_set_;
   int num_of_next_waypoint_;
+  int num_of_feedback_waypoint_;
   geometry_msgs::Point position_of_next_target_;
+  geometry_msgs::Point position_of_fb_target_;
   double lookahead_distance_;
+  double feedback_distance_;
+  int lost_waypt_count = 0;
+  int lost_tar_count = 0;
+
 
   geometry_msgs::PoseStamped current_pose_;
   geometry_msgs::TwistStamped current_velocity_;
   WayPoints current_waypoints_;
 
+
   double getCmdVelocity(int waypoint) const;
-  void calcLookaheadDistance(int waypoint);
+  void   calcLookaheadDistance(int waypoint);
   double calcCurvature(geometry_msgs::Point target) const;
   double calcRadius(geometry_msgs::Point target) const;
-  bool interpolateNextTarget(int next_waypoint, geometry_msgs::Point *next_target) const;
-  bool verifyFollowing() const;
+  bool   interpolateNextTarget(int next_waypoint, geometry_msgs::Point *next_target) const;
+  bool   verifyFollowing() const;
   geometry_msgs::Twist calcTwist(double curvature, double cmd_velocity) const;
-  void getNextWaypoint();
+  void   getNextWaypoint();
+  double linearInterp(const double& x, const double& a, const double& b);
+  double getLatDis(const double& length,const geometry_msgs::PoseStamped& front_wheel);
+  double getCompSteer(const geometry_msgs::Pose& tarPose, const geometry_msgs::PoseStamped& front_wheel, const geometry_msgs::PoseStamped& car_center,
+                      double& lateral_dis_error1, double& lateral_dis_error2, double& real_ori_error, double& comp1, double& comp2);
+  void   getFFFactor(const double& lateral_err, const double& ori_err, double& ff_factor, double& fb_factor);
+  template <class T>
+  int Sign (T a) {if (a>0) return 1; else if (a<0) return -1; else return 0;}
   geometry_msgs::TwistStamped outputZero() const;
+  geometry_msgs::TwistStamped keepStatus() const;
+  geometry_msgs::TwistStamped softBrake() const;
   geometry_msgs::TwistStamped outputTwist(geometry_msgs::Twist t) const;
   double calcAcceleration() const;
 
 public:
-  PurePursuit(bool linear_interpolate_mode)
+  PurePursuit(bool linear_interpolate_mode,  tf::TransformListener& tf)
     : RADIUS_MAX_(9e10)
     , KAPPA_MIN_(1/RADIUS_MAX_)
     , linear_interpolate_(linear_interpolate_mode)
     , param_flag_(0)
     , const_lookahead_distance_(4.0)
     , initial_velocity_(5.0)
-    , lookahead_distance_calc_ratio_(2.0)
-    , minimum_lookahead_distance_(6.0)
-    , displacement_threshold_(0.2)
-    , relative_angle_threshold_(5.)
+    , lookahead_distance_calc_ratio_(1.0)
+    , minimum_lookahead_distance_(3.5)
+    , displacement_threshold_(0.05)
+    , relative_angle_threshold_(0.1)
     , waypoint_set_(false)
     , pose_set_(false)
     , velocity_set_(false)
     , num_of_next_waypoint_(-1)
+    , num_of_feedback_waypoint_(-1)
     , lookahead_distance_(0)
+    , feedback_distance_(0)
+    , tf_(tf)
+    , wheel_base_(2.85)
+    , speed_limit_(80)
   {
   }
   ~PurePursuit()
@@ -114,9 +142,15 @@ public:
 
   // for ROS
   void callbackFromCurrentPose(const geometry_msgs::PoseStampedConstPtr &msg);
+  void callbackFromCurrentPoseR(const autogo_msgs::TrajectoryConstPtr &msg);
+//  void callbackFromCurrentPoseR(const autogo_msgs::localization_status& msg);
   void callbackFromCurrentVelocity(const geometry_msgs::TwistStampedConstPtr &msg);
-  void callbackFromWayPoints(const styx_msgs::LaneConstPtr &msg);
-
+  void callbackFromCurrentVelocityR(const geometry_msgs::TwistStampedConstPtr &msg);
+  void callbackFromWayPoints1(const styx_msgs::LaneConstPtr &msg);
+  void callbackFromWayPoints(const autogo_msgs::TrajectoryConstPtr &msg);
+  void callbackFromKeyBoard(const std_msgs::Char::ConstPtr msg);
+  bool autonomous_activate_ = false;
+  bool getAutonomousRight(){ return autonomous_activate_;}
   // for debug
   geometry_msgs::Point getPoseOfNextWaypoint() const
   {
@@ -136,7 +170,7 @@ public:
     return lookahead_distance_;
   }
   // processing for ROS
-  geometry_msgs::TwistStamped go();
+  geometry_msgs::TwistStamped go(geometry_msgs::TwistStamped& debug_pub);
 };
 }
 

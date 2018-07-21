@@ -1,0 +1,28 @@
+mpc/topic_sub_imu: /autogo/sensors/imu
+mpc/topic_sub_chassis: /autogo/drivers/chitu_velocity_controller/odom
+mpc/topic_sub_localization_status: /autogo/localization/status
+mpc/topic_sub_planning: /autogo/planning/trajectory
+mpc/topic_pub_control_cmd: /autogo/control/sim/cmd/
+
+mpc/predicted_trajectory: /autogo/control/sim/viz/predicted_trajectory
+mpc/fitted_trajectory: /autogo/control/sim/viz/fitted_trajectory
+mpc/fitted_waypoints: /autogo/control/sim/viz/fitted_waypoints
+
+mpc/wheel_base: 1.4
+mpc/control_rate: 30
+mpc/max_odom_time_interval: 1.0
+mpc/max_trajectory_time_interval: 1.0
+mpc/is_sim_status: true
+
+mpc/color_1_a: 1.0
+mpc/color_1_r: 100.0
+mpc/color_1_g: 205.0
+mpc/color_1_b: 100.0
+mpc/color_2_a: 1.0
+mpc/color_2_r: 100.0
+mpc/color_2_g: 201.0
+mpc/color_2_b: 190.0
+mpc/color_3_a: 1.0
+mpc/color_3_r: 155.0
+mpc/color_3_g: 100.0
+mpc/color_3_b: 225.0

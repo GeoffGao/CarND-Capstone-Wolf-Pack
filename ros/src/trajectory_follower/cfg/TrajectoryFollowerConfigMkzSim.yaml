@@ -1,0 +1,50 @@
+mpc/topic_sub_imu:                 /current_velocity
+mpc/topic_sub_chassis:             /current_velocity
+mpc/topic_sub_steering:            /vehicle/steering_report
+mpc/topic_sub_velocity:            /current_velocity
+mpc/topic_sub_wire_enable  :       /current_pose
+mpc/topic_sub_fuel_level  :        /current_pose
+mpc/topic_sub_localization_status: /current_pose
+mpc/topic_sub_planning:            /final_waypoints
+
+mpc/topic_pub_throttle:           /vehicle/throttle_cmd
+mpc/topic_pub_brake:              /vehicle/brake_cmd
+mpc/topic_pub_steering:           /vehicle/steering_cmd
+mpc/topic_pub_twist:              /twist_cmd
+mpc/topic_pub_debuginfo:          /debug_info_PP
+
+mpc/topic_pub_mid_accel:           /filtered_accel     
+mpc/topic_pub_mid_rqt_accel:       /req_accel
+
+mpc/predicted_trajectory:          /mkz/control/sim/viz/predicted_trajectory
+mpc/fitted_trajectory:             /mkz/control/sim/viz/fitted_trajectory
+mpc/fitted_waypoints:              /mkz/control/sim/viz/fitted_waypoints
+
+mpc/wheel_base: 2.8498
+mpc/control_rate: 30
+mpc/max_odom_time_interval: 1.0
+mpc/max_trajectory_time_interval: 1.0
+mpc/is_sim_status: true
+mpc/number_advanced:   1.0
+mpc/acc_argument:      1.0
+mpc/predict_horizon:     10
+mpc/weight_lateral: 0.5
+mpc/weight_vertical: 0.5
+mpc/weight_epsi: 5.0
+mpc/weight_delta_acc: 10.0
+mpc/weight_delta_steer: 50.0
+mpc/weight_speed: 5.0
+mpc/weight_steer: 1.0
+
+mpc/color_1_a: 1.0
+mpc/color_1_r: 100.0
+mpc/color_1_g: 205.0
+mpc/color_1_b: 100.0
+mpc/color_2_a: 1.0
+mpc/color_2_r: 100.0
+mpc/color_2_g: 201.0
+mpc/color_2_b: 190.0
+mpc/color_3_a: 1.0
+mpc/color_3_r: 155.0
+mpc/color_3_g: 100.0
+mpc/color_3_b: 225.0

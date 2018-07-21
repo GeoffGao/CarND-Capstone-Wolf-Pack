@@ -1,0 +1,196 @@
+1. last_vws_idx: 0 last_vws_len:4 
+   last_end = (last_vws_idx + last_vws_len -1) % last_vws_len 		 = (0+4-1)%4 = 3
+   initv = last_vs[last_end] = last_vs[3] = 0
+   initomega = last_ws[last_end] = last_ws[3] = 0
+   state << px, py, psi, epsi, initv, initomga
+   
+   last_vws[0] = imuv;
+   last_vws[1] = imuomega;
+   
+   for (li = 0; li< 3; ++li)
+   {
+		last_li = (last_vws_idx + li) % last_vws_len;
+		last_li = ( 0 + 0 )%4 = 0;
+		last_vws[2] = last_vs[0] = 0;
+		last_vws[3] = last_ws[0] = 0;
+		
+		last_li = (0 + 1)%4 = 1;
+		last_vws[4] = last_vs[1] = 0;
+		last_vws[5] = last_ws[1] = 0;
+		
+		last_li = (0 + 2)%4 = 0;
+		last_vws[6] = last_vs[2] = 0;
+		last_vws[7] = last_ws[2] = 0;
+   }
+   
+   
+   last_vws_idx = (last_vws_idx + 1) % last_vws_len
+				= (0 + 1) % 4 = 1
+   last_vs[1] = mpc_v;
+   last_ws[1] = mpc_omega;
+   
+   last_vws[0-7]:[imuv, imuomega, 0,0,0,0,0,0]
+   
+   
+2. last_vws_idx: 1 last_vws_len:4 
+   last_end = (1+4-1)%4 = 0
+   initv = last_vs[last_end] = last_vs[0] = 0
+   initomega = last_ws[last_end] = last_ws[0] = 0
+   state << px, py, psi, epsi, initv, initomga
+   
+   last_vws[0] = imuv;
+   last_vws[1] = imuomega;
+   
+   for (li = 0; li< 3; ++li)
+   {
+		last_li = ( 1 + 0 )%4 = 1;
+		last_vws[2] = last_vs[1] = mpc_v;
+		last_vws[3] = last_ws[1] = mpc_omega;
+		
+		last_li = (1 + 1)%4 = 2;
+		last_vws[4] = last_vs[2] = 0;
+		last_vws[5] = last_ws[2] = 0;
+		
+		last_li = (1 + 2)%4 = 3;
+		last_vws[6] = last_vs[3] = 0;
+		last_vws[7] = last_ws[3] = 0;
+   }
+   
+   
+   last_vws_idx = (last_vws_idx + 1) % last_vws_len
+				= (1 + 1) % 4 = 2
+   last_vs[2] = mpc_v';
+   last_ws[2] = mpc_omega';
+   
+   last_vws[0-7]:[imuv, imuomega, mpc_v,mpc_omega,0,0,0,0]
+   
+3. last_vws_idx: 2 last_vws_len:4 
+   last_end = (2+4-1)%4 = 1
+   initv = last_vs[last_end] = last_vs[1] = mpc_v
+   initomega = last_ws[last_end] = last_ws[1] = mpc_omega
+   state << px, py, psi, epsi, initv, initomga
+   
+   last_vws[0] = imuv;
+   last_vws[1] = imuomega;
+   
+   for (li = 0; li< 3; ++li)
+   {
+		last_li = ( 2 + 0 )%4 = 2;
+		last_vws[2] = last_vs[2] = mpc_v';
+		last_vws[3] = last_ws[2] = mpc_omega';
+		
+		last_li = (2 + 1)%4 = 3;
+		last_vws[4] = last_vs[3] = 0;
+		last_vws[5] = last_ws[3] = 0;
+		
+		last_li = (2 + 2)%4 = 0;
+		last_vws[6] = last_vs[0] = 0;
+		last_vws[7] = last_ws[0] = 0;
+   }
+   
+   
+   last_vws_idx = (last_vws_idx + 1) % last_vws_len
+				= (2 + 1) % 4 = 3
+   last_vs[3] = mpc_v'';
+   last_ws[3] = mpc_omega'';  
+   
+   last_vws[0-7]:[imuv, imuomega, mpc_v',mpc_omega',0,0,0,0]
+   
+4. last_vws_idx: 3 last_vws_len:4 
+   last_end = (3+4-1)%4 = 2
+   initv = last_vs[last_end] = last_vs[2] = mpc_v'
+   initomega = last_ws[last_end] = last_ws[2] = mpc_omega'
+   state << px, py, psi, epsi, initv, initomga
+   
+   last_vws[0] = imuv;
+   last_vws[1] = imuomega;
+   
+   for (li = 0; li< 3; ++li)
+   {
+		last_li = ( 3 + 0 )%4 = 3;
+		last_vws[2] = last_vs[3] = mpc_v'';
+		last_vws[3] = last_ws[3] = mpc_omega'';
+		
+		last_li = (3 + 1)%4 = 0;
+		last_vws[4] = last_vs[0] = 0;
+		last_vws[5] = last_ws[0] = 0;
+		
+		last_li = (3 + 2)%4 = 1;
+		last_vws[6] = last_vs[1] = mpc_v;
+		last_vws[7] = last_ws[1] = mpc_omega;
+   }
+   
+   
+   last_vws_idx = (last_vws_idx + 1) % last_vws_len
+				= (3 + 1) % 4 = 0
+   last_vs[0] = mpc_v''';
+   last_ws[0] = mpc_omega''';  
+   
+   last_vws[0-7]:[imuv, imuomega, mpc_v'',mpc_omega'',0,0,mpc_v,mpc_omega]
+
+5. last_vws_idx: 0 last_vws_len:4 
+   last_end = (0+4-1)%4 = 3
+   initv = last_vs[last_end] = last_vs[3] = mpc_v''
+   initomega = last_ws[last_end] = last_ws[3] = mpc_omega''
+   state << px, py, psi, epsi, initv, initomga
+   
+   last_vws[0] = imuv;
+   last_vws[1] = imuomega;
+   
+   for (li = 0; li< 3; ++li)
+   {
+		last_li = ( 0 + 0 )%4 = 0;
+		last_vws[2] = last_vs[0] = mpc_v''';
+		last_vws[3] = last_ws[0] = mpc_omega''';
+		
+		last_li = (0 + 1)%4 = 1;
+		last_vws[4] = last_vs[1] = mpc_v;
+		last_vws[5] = last_ws[1] = mpc_omega;
+		
+		last_li = (0 + 2)%4 = 2;
+		last_vws[6] = last_vs[2] = mpc_v';
+		last_vws[7] = last_ws[2] = mpc_omega';
+   }
+   
+   
+   last_vws_idx = (last_vws_idx + 1) % last_vws_len
+				= (0 + 1) % 4 = 1
+   last_vs[1] = mpc_v'''';
+   last_ws[1] = mpc_omega'''';  
+   
+   last_vws[0-7]:[imuv, imuomega, mpc_v''',mpc_omega''',mpc_v,mpc_omega,mpc_v',mpc_omega']
+   
+5. last_vws_idx: 1 last_vws_len:4 
+   last_end = (1+4-1)%4 = 0
+   initv = last_vs[last_end] = last_vs[0] = mpc_v'''
+   initomega = last_ws[last_end] = last_ws[0] = mpc_omega'''
+   state << px, py, psi, epsi, initv, initomga
+   
+   last_vws[0] = imuv;
+   last_vws[1] = imuomega;
+   
+   for (li = 0; li< 3; ++li)
+   {
+		last_li = ( 1 + 0 )%4 = 1;
+		last_vws[2] = last_vs[1] = mpc_v'''';
+		last_vws[3] = last_ws[1] = mpc_omega'''';
+		
+		last_li = (1 + 1)%4 = 2;
+		last_vws[4] = last_vs[2] = mpc_v';
+		last_vws[5] = last_ws[2] = mpc_omega';
+		
+		last_li = (1 + 2)%4 = 3;
+		last_vws[6] = last_vs[3] = mpc_v'';
+		last_vws[7] = last_ws[3] = mpc_omega'';
+   }
+   
+   
+   last_vws_idx = (last_vws_idx + 1) % last_vws_len
+				= (1 + 1) % 4 = 2
+   last_vs[2] = mpc_v''''';
+   last_ws[2] = mpc_omega''''';  
+   
+   last_vws[0-7]:[imuv, imuomega, mpc_v'''',mpc_omega'''',mpc_v',mpc_omega',mpc_v'',mpc_omega'']
+
+   
+   
